@@ -7,6 +7,7 @@ https://poloniex.com/support/api/
 import os
 import requests
 import json
+from datetime import datetime
 
 import pandas as pd
 
@@ -20,12 +21,19 @@ DATA_DIR = os.path.join(
 class InvalidCurrencyPairException(Exception):
     pass
 
-def save(data, filename):
+def transform(df):
+
+    date_objs = df['date'].apply(lambda x: datetime.fromtimestamp(x))
+    df['day_of_week'] = date_objs.apply(lambda x: x.strftime("%A"))
+    df['time_of_day'] = date_objs.apply(lambda x: (x - x.replace(hour=0, minute=0, second=0)).seconds)
+
+    return df
+
+def save(df, filename):
 
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
-    df = pd.DataFrame(data)
     df.to_csv(
         os.path.join(DATA_DIR, filename),
         index=False
@@ -71,8 +79,9 @@ def download_all():
         print 'Getting data for {}'.format(currency)
 
         try:
-            data = download(
+            download(
                 currency=currency,
+                filename='{}.csv'.format(currency),
                 base_currency=base_currency
             )
         except InvalidCurrencyPairException as e:
@@ -83,10 +92,9 @@ def download_all():
             )
             continue
 
-        save(data, filename='{}.csv'.format(currency))
-
 def download(
     currency,
+    filename,
     base_currency='BTC',
     start=1405699200,
     end=9999999999,
@@ -102,7 +110,10 @@ def download(
         period=period
     )
 
-    return data
+    df = pd.DataFrame(data)
+    df = transform(df)
+
+    save(df, filename)
 
 if __name__ == '__main__':
     download_all()
