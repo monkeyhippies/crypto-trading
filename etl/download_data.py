@@ -22,6 +22,9 @@ class InvalidCurrencyPairException(Exception):
 
 def save(data, filename):
 
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
     df = pd.DataFrame(data)
     df.to_csv(
         os.path.join(DATA_DIR, filename),
